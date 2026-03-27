@@ -19,8 +19,31 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { Prescription, PrescriptionItem } from '../types';
+import { safeString, safeBoolean, safeTimestamp, safeArray } from '../utils/safeAccess';
 
 class PrescriptionService {
+  /**
+   * Private helper to map prescription data safely
+   */
+  private mapPrescription(docId: string, data: any): Prescription {
+    return {
+      id: docId,
+      patientId: safeString(data.patientId),
+      patientName: safeString(data.patientName),
+      doctorId: safeString(data.doctorId),
+      doctorName: safeString(data.doctorName),
+      status: safeString(data.status, 'ISSUED') as any,
+      items: safeArray<PrescriptionItem>(data.items),
+      issuedAt: safeString(data.issuedAt),
+      createdAt: safeTimestamp(data.createdAt),
+      pharmacyId: safeString(data.pharmacyId),
+      pharmacyName: safeString(data.pharmacyName),
+      qrCode: safeString(data.qrCode),
+      isExternal: safeBoolean(data.isExternal, false),
+      externalFileUrl: safeString(data.externalFileUrl),
+    } as Prescription;
+  }
+
   /**
    * Create a new prescription (issued by doctor)
    */
@@ -122,10 +145,7 @@ class PrescriptionService {
         return null;
       }
 
-      return {
-        id: prescriptionSnap.id,
-        ...prescriptionSnap.data(),
-      } as Prescription;
+      return this.mapPrescription(prescriptionSnap.id, prescriptionSnap.data());
     } catch (error) {
       console.error('Get prescription error:', error);
       return null;
@@ -144,10 +164,7 @@ class PrescriptionService {
       );
 
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Prescription[];
+      return querySnapshot.docs.map(doc => this.mapPrescription(doc.id, doc.data()));
     } catch (error) {
       console.error('Get patient prescriptions error:', error);
       return [];
@@ -166,10 +183,7 @@ class PrescriptionService {
       );
 
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Prescription[];
+      return querySnapshot.docs.map(doc => this.mapPrescription(doc.id, doc.data()));
     } catch (error) {
       console.error('Get doctor prescriptions error:', error);
       return [];
@@ -192,10 +206,7 @@ class PrescriptionService {
       }
 
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Prescription[];
+      return querySnapshot.docs.map(doc => this.mapPrescription(doc.id, doc.data()));
     } catch (error) {
       console.error('Get pharmacy prescriptions error:', error);
       return [];
@@ -219,10 +230,7 @@ class PrescriptionService {
       }
 
       const doc = querySnapshot.docs[0];
-      return {
-        id: doc.id,
-        ...doc.data(),
-      } as Prescription;
+      return this.mapPrescription(doc.id, doc.data());
     } catch (error) {
       console.error('Verify prescription by QR error:', error);
       return null;

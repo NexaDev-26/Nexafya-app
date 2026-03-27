@@ -10,6 +10,7 @@ import { handleError } from '../utils/errorHandler';
 import { db as firestore } from '../lib/firebase';
 import { collection, query, where, orderBy, onSnapshot, Timestamp } from 'firebase/firestore';
 import { PullToRefresh } from './PullToRefresh';
+import { safeString, safeNumber, safeTimestamp } from '../utils/safeAccess';
 
 interface OrdersProps {
     user?: User;
@@ -45,12 +46,12 @@ const OrdersComponent: React.FC<OrdersProps> = ({ user, onNavigate }) => {
             (snapshot) => {
                 const ordersData = snapshot.docs.map((doc) => {
                     const data = doc.data();
-                    const createdAt = data.createdAt?.toDate?.() || (data.created_at?.toDate?.()) || new Date();
+                    const createdAt = safeTimestamp(data.createdAt || data.created_at);
                     
                     // Format items for display
                     const items = Array.isArray(data.items) 
-                        ? data.items.map((item: any) => `${item.quantity}x ${item.name || item.medicine_name || 'Medicine'}`).join(', ')
-                        : data.items || 'Medicines';
+                        ? data.items.map((item: any) => `${item.quantity}x ${safeString(item.name || item.medicine_name, 'Medicine')}`).join(', ')
+                        : safeString(data.items, 'Medicines');
                     
                     return {
                         id: doc.id,
@@ -76,9 +77,9 @@ const OrdersComponent: React.FC<OrdersProps> = ({ user, onNavigate }) => {
                         items_list: Array.isArray(data.items) ? data.items : [],
                         status_timestamps: {
                             placed: createdAt,
-                            processing: data.processing_at?.toDate?.() || null,
-                            dispatched: data.dispatched_at?.toDate?.() || null,
-                            delivered: data.delivered_at?.toDate?.() || null
+                            processing: safeTimestamp(data.processing_at, null as any),
+                            dispatched: safeTimestamp(data.dispatched_at, null as any),
+                            delivered: safeTimestamp(data.delivered_at, null as any)
                         }
                     };
                 }).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()); // Sort by date descending client-side

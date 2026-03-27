@@ -6,7 +6,7 @@ export const userSchema = z.object({
   email: z.string().email('Invalid email address'),
   phone: z.string().regex(/^\+255\d{9}$/, 'Phone must be in format +255XXXXXXXXX'),
   role: z.enum(['PATIENT', 'DOCTOR', 'PHARMACY', 'COURIER', 'ADMIN', 'CHW'], {
-    errorMap: () => ({ message: 'Invalid role' })
+    message: 'Invalid role'
   }),
 });
 
@@ -23,7 +23,7 @@ export const orderSchema = z.object({
   total: z.number().positive('Total must be positive'),
   location: z.string().min(1, 'Delivery location is required'),
   payment_method: z.enum(['mpesa', 'tigo_pesa', 'airtel_money', 'cash'], {
-    errorMap: () => ({ message: 'Invalid payment method' })
+    message: 'Invalid payment method'
   }),
   delivery_address: z.string().optional(),
 });
@@ -49,13 +49,13 @@ export const appointmentSchema = z.object({
   date: z.string().or(z.date()),
   time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Time must be in HH:MM format'),
   type: z.enum(['VIDEO', 'AUDIO', 'CHAT', 'IN_PERSON'], {
-    errorMap: () => ({ message: 'Invalid appointment type' })
+    message: 'Invalid appointment type'
   }).optional(),
   status: z.enum(['PENDING', 'UPCOMING', 'CONFIRMED', 'CANCELLED', 'COMPLETED', 'CANCELLED'], {
-    errorMap: () => ({ message: 'Invalid appointment status' })
+    message: 'Invalid appointment status'
   }).optional(),
   payment_status: z.enum(['PENDING', 'PAID', 'HELD_IN_ESCROW', 'RELEASED'], {
-    errorMap: () => ({ message: 'Invalid payment status' })
+    message: 'Invalid payment status'
   }).optional(),
   fee: z.number().nonnegative('Fee cannot be negative').optional(),
   location: z.string().optional(),
@@ -95,7 +95,7 @@ export const prescriptionSchema = z.object({
     duration: z.string().min(1, 'Duration is required'),
   })).optional(),
   status: z.enum(['ACTIVE', 'FULFILLED', 'EXPIRED', 'CANCELLED'], {
-    errorMap: () => ({ message: 'Invalid prescription status' })
+    message: 'Invalid prescription status'
   }).optional(),
   notes: z.string().optional(),
   qrCode: z.string().url('Invalid QR code URL').optional().or(z.literal('')),
@@ -106,7 +106,7 @@ export const prescriptionSchema = z.object({
 export const subscriptionSchema = z.object({
   user_id: z.string().min(1, 'User ID is required'),
   plan: z.enum(['BASIC', 'PROFESSIONAL', 'ENTERPRISE', 'PREMIUM'], {
-    errorMap: () => ({ message: 'Invalid subscription plan' })
+    message: 'Invalid subscription plan'
   }),
   price: z.number().nonnegative('Price cannot be negative'),
   startDate: z.string().or(z.date()),
@@ -175,7 +175,7 @@ export function validateAndSanitize<T>(
  * @returns Array of error messages
  */
 export function getValidationErrors(errors: z.ZodError): string[] {
-  return errors.errors.map(err => {
+  return errors.issues.map(err => {
     const path = err.path.join('.');
     return err.message || `${path} is invalid`;
   });

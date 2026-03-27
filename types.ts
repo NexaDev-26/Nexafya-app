@@ -42,22 +42,12 @@ export interface Doctor extends User {
   yearsOfExperience?: number;
 }
 
-export interface Appointment {
-  id: string;
-  doctorName: string;
-  patientName: string;
-  date: string;
-  time: string;
-  status: 'UPCOMING' | 'COMPLETED' | 'CANCELLED';
-  paymentStatus: 'PENDING' | 'PAID' | 'HELD_IN_ESCROW' | 'RELEASED'; 
-  type: 'VIDEO' | 'AUDIO' | 'CHAT' | 'IN_PERSON';
-  doctorId?: string;
-  patientId?: string;
-  fee?: number;
-  meetingLink?: string;
-  notes?: string; // Added for clinical notes storage
-  location?: string; // For in-person appointments
-}
+export { 
+  AppointmentStatus, 
+  AppointmentType, 
+  PaymentStatus
+} from './types/appointment';
+export type { Appointment } from './types/appointment';
 
 export interface Medicine {
   id: string;
@@ -187,6 +177,8 @@ export interface Prescription {
 }
 
 export interface PrescriptionItem {
+  medicineId?: string;
+  medicineName?: string;
   medication: string;
   dosage: string;
   frequency: string;
@@ -195,9 +187,7 @@ export interface PrescriptionItem {
   quantity?: number;
 }
 
-export interface Courier {
-  id: string;
-  name: string;
+export interface Courier extends User {
   vehicle: 'Motorcycle' | 'Bicycle' | 'Van';
   status: 'Available' | 'Busy' | 'Offline';
   currentLocation: string;

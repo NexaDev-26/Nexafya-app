@@ -19,6 +19,7 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { cleanFirestoreData } from '../utils/firestoreHelpers';
+import { safeString, safeNumber, safeBoolean, safeTimestamp } from '../utils/safeAccess';
 
 export interface LabTest {
   id?: string;
@@ -112,10 +113,24 @@ class LabService {
       }
 
       const snapshot = await getDocs(q);
-      return snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as LabTest[];
+      return snapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          name: safeString(data.name),
+          category: safeString(data.category),
+          description: safeString(data.description),
+          price: safeNumber(data.price),
+          currency: safeString(data.currency, 'TZS'),
+          duration: safeString(data.duration),
+          preparation: safeString(data.preparation),
+          labPartnerId: safeString(data.labPartnerId),
+          labPartnerName: safeString(data.labPartnerName),
+          isAvailable: safeBoolean(data.isAvailable, true),
+          createdAt: safeTimestamp(data.createdAt),
+          updatedAt: safeTimestamp(data.updatedAt),
+        };
+      }) as LabTest[];
     } catch (error) {
       console.error('Get lab tests error:', error);
       return [];
@@ -131,7 +146,22 @@ class LabService {
       const testSnap = await getDoc(testRef);
 
       if (testSnap.exists()) {
-        return { id: testSnap.id, ...testSnap.data() } as LabTest;
+        const data = testSnap.data();
+        return {
+          id: testSnap.id,
+          name: safeString(data.name),
+          category: safeString(data.category),
+          description: safeString(data.description),
+          price: safeNumber(data.price),
+          currency: safeString(data.currency, 'TZS'),
+          duration: safeString(data.duration),
+          preparation: safeString(data.preparation),
+          labPartnerId: safeString(data.labPartnerId),
+          labPartnerName: safeString(data.labPartnerName),
+          isAvailable: safeBoolean(data.isAvailable, true),
+          createdAt: safeTimestamp(data.createdAt),
+          updatedAt: safeTimestamp(data.updatedAt),
+        } as LabTest;
       }
       return null;
     } catch (error) {
@@ -152,10 +182,24 @@ class LabService {
       );
 
       const snapshot = await getDocs(q);
-      return snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as LabPartner[];
+      return snapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          name: safeString(data.name),
+          email: safeString(data.email),
+          phone: safeString(data.phone),
+          address: safeString(data.address),
+          city: safeString(data.city),
+          location: data.location || { lat: 0, lng: 0 },
+          specialties: Array.isArray(data.specialties) ? data.specialties : [],
+          isActive: safeBoolean(data.isActive, true),
+          rating: safeNumber(data.rating),
+          ratingCount: safeNumber(data.ratingCount),
+          createdAt: safeTimestamp(data.createdAt),
+          updatedAt: safeTimestamp(data.updatedAt),
+        };
+      }) as LabPartner[];
     } catch (error) {
       console.error('Get lab partners error:', error);
       return [];
@@ -195,10 +239,32 @@ class LabService {
       );
 
       const snapshot = await getDocs(q);
-      return snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as LabBooking[];
+      return snapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          userId: safeString(data.userId),
+          userName: safeString(data.userName),
+          testId: safeString(data.testId),
+          testName: safeString(data.testName),
+          labPartnerId: safeString(data.labPartnerId),
+          labPartnerName: safeString(data.labPartnerName),
+          status: safeString(data.status, 'PENDING') as any,
+          appointmentDate: safeTimestamp(data.appointmentDate),
+          appointmentTime: safeString(data.appointmentTime),
+          sampleCollectionDate: safeTimestamp(data.sampleCollectionDate),
+          resultReadyDate: safeTimestamp(data.resultReadyDate),
+          resultUrl: safeString(data.resultUrl),
+          resultNotes: safeString(data.resultNotes),
+          doctorNotes: safeString(data.doctorNotes),
+          price: safeNumber(data.price),
+          currency: safeString(data.currency, 'TZS'),
+          paymentStatus: safeString(data.paymentStatus, 'PENDING') as any,
+          transactionId: safeString(data.transactionId),
+          createdAt: safeTimestamp(data.createdAt),
+          updatedAt: safeTimestamp(data.updatedAt),
+        };
+      }) as LabBooking[];
     } catch (error) {
       console.error('Get user lab bookings error:', error);
       return [];

@@ -4,7 +4,7 @@ import { useNotification } from './NotificationSystem';
 import type { NotificationType } from '../services/notificationService';
 import { useAuth } from '../contexts/AuthContext';
 import { UserRole, UserVerification, VerificationDocument } from '../types';
-import { collection, query, where, getDocs, updateDoc, doc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, updateDoc, doc, serverTimestamp, getDoc, setDoc } from 'firebase/firestore';
 import { db as firestore } from '../lib/firebase';
 import { notificationService } from '../services/notificationService';
 import { cleanFirestoreData } from '../utils/firestoreHelpers';

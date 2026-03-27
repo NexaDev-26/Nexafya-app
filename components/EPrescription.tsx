@@ -16,7 +16,7 @@ import {
   Calendar,
   Clock
 } from 'lucide-react';
-import { Prescription, Medicine, PrescriptionItem as PrescriptionItemType } from '../types';
+import { Prescription, Medicine, PrescriptionItem } from '../types';
 import { db } from '../services/db';
 import { useNotification } from './NotificationSystem';
 import { useAuth } from '../contexts/AuthContext';
@@ -24,15 +24,7 @@ import { EmptyState } from './EmptyState';
 import { SkeletonLoader } from './SkeletonLoader';
 import { handleError } from '../utils/errorHandler';
 
-interface PrescriptionItem {
-  medicineId: string;
-  medicineName: string;
-  dosage: string;
-  frequency: string;
-  duration: string;
-  instructions: string;
-  quantity: number;
-}
+
 
 interface EPrescription extends Omit<Prescription, 'items' | 'status'> {
   items: PrescriptionItem[];
@@ -85,6 +77,7 @@ export const EPrescription: React.FC = () => {
     const newItem: PrescriptionItem = {
       medicineId: '',
       medicineName: '',
+      medication: '',
       dosage: '',
       frequency: '',
       duration: '',
@@ -136,13 +129,15 @@ export const EPrescription: React.FC = () => {
         patientId: formData.patientId,
         patientName: formData.patientName,
         items: formData.items.map(item => ({
+          medicineId: item.medicineId,
+          medicineName: item.medicineName,
           medication: item.medicineName || '',
           dosage: item.dosage,
           frequency: item.frequency,
           duration: item.duration,
           instructions: item.instructions || '',
           quantity: Number(item.quantity) || 1
-        } as PrescriptionItemType)),
+        } as PrescriptionItem)),
         date: new Date().toISOString(),
         status: 'DRAFT',
         notes: formData.notes,

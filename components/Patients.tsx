@@ -4,7 +4,7 @@ import { Search, Calendar, Clock, Filter, ChevronDown, ChevronRight, MessageSqua
 import { useNotification } from './NotificationSystem';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../services/db';
-import { Appointment, UserRole } from '../types';
+import { Appointment, UserRole, AppointmentType, AppointmentStatus } from '../types';
 import { handleError } from '../utils/errorHandler';
 import { SkeletonLoader } from './SkeletonLoader';
 import { EmptyState } from './EmptyState';
@@ -120,7 +120,7 @@ export const Patients: React.FC<PatientsProps> = ({ onNavigate }) => {
                         <div className="flex items-center gap-2"><Calendar size={16} className="text-gray-400" /> {patient.next?.date}</div>
                         <div className="flex items-center gap-2"><Clock size={16} className="text-gray-400" /> {patient.next?.time}</div>
                         <div className="flex items-center gap-2 font-bold text-blue-600">
-                          {patient.next?.type === 'VIDEO' ? <Video size={16} /> : patient.next?.type === 'AUDIO' ? <Phone size={16} /> : <MessageSquare size={16} />}
+                          {patient.next?.type === AppointmentType.VIDEO ? <Video size={16} /> : patient.next?.type === AppointmentType.AUDIO ? <Phone size={16} /> : <MessageSquare size={16} />}
                           {patient.next?.type}
                         </div>
                     </div>
@@ -149,7 +149,7 @@ export const Patients: React.FC<PatientsProps> = ({ onNavigate }) => {
                             className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
                             title="Start call"
                          >
-                            {patient.next?.type === 'AUDIO' ? <Phone size={20} /> : <Video size={20} />}
+                            {patient.next?.type === AppointmentType.AUDIO ? <Phone size={20} /> : <Video size={20} />}
                          </button>
                          <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
                             <ChevronRight size={20} />

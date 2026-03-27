@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Search, Edit2, Trash2, Shield, Ban, CheckCircle, X, Mail, Phone, MapPin, Calendar, Filter, Download, ShieldCheck, AlertCircle } from 'lucide-react';
 import { useNotification } from './NotificationSystem';
+import { cleanFirestoreData } from '../utils/firestoreHelpers';
+import { safeString, safeBoolean, safeNumber, safeTimestamp } from '../utils/safeAccess';
 import { useAuth } from '../contexts/AuthContext';
 import { User, UserRole } from '../types';
 import { collection, getDocs, updateDoc, deleteDoc, doc, query, where, orderBy, serverTimestamp, getDoc } from 'firebase/firestore';
 import { db as firestore } from '../lib/firebase';
-import { cleanFirestoreData } from '../utils/firestoreHelpers';
+import { PullToRefresh } from './PullToRefresh';
 
 export const UserManagement: React.FC = () => {
   const { user: currentUser } = useAuth();
@@ -39,7 +41,21 @@ export const UserManagement: React.FC = () => {
       // Load verification status for each user
       const usersData = await Promise.all(
         snapshot.docs.map(async (doc) => {
-          const userData = { id: doc.id, ...doc.data() } as User & { verificationStatus?: string };
+          const data = doc.data();
+          const userData = { 
+            id: doc.id, 
+            name: safeString(data.name, 'Unknown User'),
+            email: safeString(data.email),
+            phone: safeString(data.phone),
+            role: safeString(data.role, UserRole.PATIENT) as UserRole,
+            location: safeString(data.location),
+            avatar: safeString(data.avatar, `https://ui-avatars.com/api/?name=${data.name || 'User'}&background=random`),
+            points: safeNumber(data.points, 0),
+            isActive: safeBoolean(data.isActive, true),
+            createdAt: safeTimestamp(data.createdAt),
+            updatedAt: safeTimestamp(data.updatedAt),
+            verificationStatus: 'Unverified' as string
+          };
           
           // Check verification status
           const verificationQuery = query(

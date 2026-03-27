@@ -46,6 +46,7 @@ import {
   PaymentStatus,
 } from '../types/appointment';
 import { cleanFirestoreData } from '../utils/firestoreHelpers';
+import * as Safe from '../utils/safeAccess';
 
 /**
  * Firebase Database Service
@@ -67,35 +68,35 @@ export const firebaseDb = {
       
       return querySnapshot.docs.map((doc) => {
         const data = doc.data();
-        return {
+        const mapping = (d: any) => ({
           id: doc.id,
-          name: data.name || 'Doctor',
+          name: Safe.safeString(d.name, 'Doctor'),
           role: UserRole.DOCTOR,
-          avatar: data.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name || 'Doctor')}&background=random&size=200`,
-          email: data.email || '',
-          phone: data.phone || '',
-          location: data.location || 'Tanzania',
-          specialty: data.specialty || 'General Practitioner',
-          rating: Number(data.rating) || 5.0,
-          price: data.consultationFee || data.consultation_fee || data.price || 0,
-          experience: data.experienceYears || data.experience_years || data.experience || 0,
-          availability: data.availability || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-          trustTier: data.trustTier || data.subscriptionTier || undefined,
-          isTrusted: data.isTrusted || data.verificationStatus === 'Verified' || false,
-          canVerifyArticles: data.canVerifyArticles || false,
-          points: data.points || 0,
-          bio: data.bio || '',
-          workplace: data.workplace || data.hospital || data.clinic || undefined,
-          yearsOfExperience: data.experienceYears || data.experience_years || data.experience || 0,
-          verificationStatus: data.verificationStatus || undefined,
-          medicalLicenseNumber: data.medicalLicenseNumber || data.licenseNumber || undefined,
-          medicalCouncilRegistration: data.medicalCouncilRegistration || data.councilRegistration || undefined,
-          isActive: data.isActive !== false,
-        };
+          avatar: Safe.safeString(d.avatar, `https://ui-avatars.com/api/?name=${encodeURIComponent(d.name || 'Doctor')}&background=random&size=200`),
+          email: Safe.safeString(d.email),
+          phone: Safe.safeString(d.phone),
+          location: Safe.safeString(d.location, 'Tanzania'),
+          specialty: Safe.safeString(d.specialty, 'General Practitioner'),
+          rating: Safe.safeNumber(d.rating, 5.0),
+          price: Safe.safeNumber(d.consultationFee || d.consultation_fee || d.price, 0),
+          experience: Safe.safeNumber(d.experienceYears || d.experience_years || d.experience, 0),
+          availability: Safe.safeGet(d, 'availability', ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']),
+          trustTier: d.trustTier || d.subscriptionTier || undefined,
+          isTrusted: Boolean(d.isTrusted || d.verificationStatus === 'Verified'),
+          canVerifyArticles: Boolean(d.canVerifyArticles),
+          points: Safe.safeNumber(d.points, 0),
+          bio: Safe.safeString(d.bio),
+          workplace: Safe.safeString(d.workplace || d.hospital || d.clinic),
+          yearsOfExperience: Safe.safeNumber(d.experienceYears || d.experience_years || d.experience, 0),
+          verificationStatus: d.verificationStatus || undefined,
+          medicalLicenseNumber: Safe.safeString(d.medicalLicenseNumber || d.licenseNumber),
+          medicalCouncilRegistration: Safe.safeString(d.medicalCouncilRegistration || d.councilRegistration),
+          isActive: d.isActive !== false,
+        });
+        return mapping(data);
       });
     } catch (e) {
       console.error("DB: Failed to fetch doctors", e);
-      // Fallback: fetch all and filter client-side if Firestore query fails (e.g., missing index)
       try {
         const doctorsRef = firestoreCollection(firestore, 'doctors');
         const allDocs = await getDocs(query(doctorsRef, orderBy('rating', 'desc')));
@@ -106,31 +107,32 @@ export const firebaseDb = {
           })
           .map((doc) => {
             const data = doc.data();
-            return {
+            const mapping = (d: any) => ({
               id: doc.id,
-              name: data.name || 'Doctor',
+              name: Safe.safeString(d.name, 'Doctor'),
               role: UserRole.DOCTOR,
-              avatar: data.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name || 'Doctor')}&background=random&size=200`,
-              email: data.email || '',
-              phone: data.phone || '',
-              location: data.location || 'Tanzania',
-              specialty: data.specialty || 'General Practitioner',
-              rating: Number(data.rating) || 5.0,
-              price: data.consultationFee || data.consultation_fee || data.price || 0,
-              experience: data.experienceYears || data.experience_years || data.experience || 0,
-              availability: data.availability || ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-              trustTier: data.trustTier || data.subscriptionTier || undefined,
-              isTrusted: data.isTrusted || data.verificationStatus === 'Verified' || false,
-              canVerifyArticles: data.canVerifyArticles || false,
-              points: data.points || 0,
-              bio: data.bio || '',
-              workplace: data.workplace || data.hospital || data.clinic || undefined,
-              yearsOfExperience: data.experienceYears || data.experience_years || data.experience || 0,
-              verificationStatus: data.verificationStatus || undefined,
-              medicalLicenseNumber: data.medicalLicenseNumber || data.licenseNumber || undefined,
-              medicalCouncilRegistration: data.medicalCouncilRegistration || data.councilRegistration || undefined,
-              isActive: data.isActive !== false,
-            };
+              avatar: Safe.safeString(d.avatar, `https://ui-avatars.com/api/?name=${encodeURIComponent(d.name || 'Doctor')}&background=random&size=200`),
+              email: Safe.safeString(d.email),
+              phone: Safe.safeString(d.phone),
+              location: Safe.safeString(d.location, 'Tanzania'),
+              specialty: Safe.safeString(d.specialty, 'General Practitioner'),
+              rating: Safe.safeNumber(d.rating, 5.0),
+              price: Safe.safeNumber(d.consultationFee || d.consultation_fee || d.price, 0),
+              experience: Safe.safeNumber(d.experienceYears || d.experience_years || d.experience, 0),
+              availability: Safe.safeGet(d, 'availability', ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']),
+              trustTier: d.trustTier || d.subscriptionTier || undefined,
+              isTrusted: Boolean(d.isTrusted || d.verificationStatus === 'Verified'),
+              canVerifyArticles: Boolean(d.canVerifyArticles),
+              points: Safe.safeNumber(d.points, 0),
+              bio: Safe.safeString(d.bio),
+              workplace: Safe.safeString(d.workplace || d.hospital || d.clinic),
+              yearsOfExperience: Safe.safeNumber(d.experienceYears || d.experience_years || d.experience, 0),
+              verificationStatus: d.verificationStatus || undefined,
+              medicalLicenseNumber: Safe.safeString(d.medicalLicenseNumber || d.licenseNumber),
+              medicalCouncilRegistration: Safe.safeString(d.medicalCouncilRegistration || d.councilRegistration),
+              isActive: d.isActive !== false,
+            });
+            return mapping(data);
           });
       } catch (fallbackError) {
         console.error("DB: Fallback fetch failed", fallbackError);
@@ -399,27 +401,21 @@ export const firebaseDb = {
       return querySnapshot.docs.map((doc) => {
         try {
           const data = doc.data() || {};
-          let scheduledAt: Date;
-          try {
-            scheduledAt = data.scheduledAt?.toDate() || new Date();
-            if (isNaN(scheduledAt.getTime())) scheduledAt = new Date();
-          } catch {
-            scheduledAt = new Date();
-          }
+          const scheduledAt = Safe.safeTimestamp(data.scheduledAt);
           
           return {
             id: doc.id,
-            doctorName: data.doctorName || 'Specialist',
-            patientName: data.patientName || 'Patient',
+            doctorName: Safe.safeString(data.doctorName, 'Specialist'),
+            patientName: Safe.safeString(data.patientName, 'Patient'),
             date: scheduledAt.toLocaleDateString(),
             time: scheduledAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             status: (data.status as AppointmentStatus) || AppointmentStatus.UPCOMING,
             paymentStatus: (data.paymentStatus as PaymentStatus) || PaymentStatus.PENDING,
             type: (data.consultationType as AppointmentType) || AppointmentType.VIDEO,
-            fee: Number(data.fee) || 0,
-            notes: data.notes || '',
-            patientId: data.patientId || '',
-            doctorId: data.doctorId || ''
+            fee: Safe.safeNumber(data.fee),
+            notes: Safe.safeString(data.notes),
+            patientId: Safe.safeString(data.patientId),
+            doctorId: Safe.safeString(data.doctorId)
           } as Appointment;
         } catch (err) {
           console.error('Error mapping appointment:', err);
@@ -579,35 +575,27 @@ export const firebaseDb = {
       return querySnapshot.docs.map((doc) => {
         try {
           const data = doc.data() || {};
-          let dateStr = '';
-          try {
-            const createdAt = data.createdAt?.toDate();
-            if (createdAt && !isNaN(createdAt.getTime())) {
-              dateStr = createdAt.toLocaleDateString();
-            }
-          } catch {
-            dateStr = new Date().toLocaleDateString();
-          }
+          const createdAt = Safe.safeTimestamp(data.createdAt);
           
           return {
             id: doc.id,
-            title: data.title || 'Untitled',
-            excerpt: data.excerpt || '',
-            content: data.content || '',
-            authorId: data.authorId || '',
-            authorName: data.authorName || 'Unknown',
+            title: Safe.safeString(data.title, 'Untitled'),
+            excerpt: Safe.safeString(data.excerpt),
+            content: Safe.safeString(data.content),
+            authorId: Safe.safeString(data.authorId),
+            authorName: Safe.safeString(data.authorName, 'Unknown'),
             authorRole: data.authorRole || UserRole.DOCTOR,
-            category: data.category || 'General',
-            readTime: Number(data.readTime) || 5,
-            date: dateStr,
-            likes: Number(data.likes) || 0,
-            views: Number(data.views) || 0,
-            image: data.image || '',
+            category: Safe.safeString(data.category, 'General'),
+            readTime: Safe.safeNumber(data.readTime, 5),
+            date: createdAt.toLocaleDateString(),
+            likes: Safe.safeNumber(data.likes),
+            views: Safe.safeNumber(data.views),
+            image: Safe.safeString(data.image),
             isPremium: Boolean(data.isPremium),
-            price: Number(data.price) || 0,
-            currency: data.currency || 'TZS',
+            price: Safe.safeNumber(data.price),
+            currency: Safe.safeString(data.currency, 'TZS'),
             status: data.status || 'published',
-            highlights: data.highlights || ''
+            highlights: Safe.safeString(data.highlights)
           } as Article;
         } catch (err) {
           console.error('Error mapping article:', err);
@@ -664,17 +652,24 @@ export const firebaseDb = {
       const querySnapshot = await getDocs(q);
       
       return querySnapshot.docs.map((doc) => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          type: data.type,
-          title: data.title,
-          doctor: data.doctor,
-          date: data.recordedAt?.toDate().toLocaleDateString() || '',
-          fileUrl: data.fileUrl,
-          status: data.status
-        };
-      });
+        try {
+          const data = doc.data() || {};
+          const recordedAt = Safe.safeTimestamp(data.recordedAt || data.recorded_at);
+          
+          return {
+            id: doc.id,
+            type: Safe.safeString(data.type, 'General'),
+            title: Safe.safeString(data.title, 'Health Record'),
+            doctor: Safe.safeString(data.doctor, 'Provider'),
+            date: recordedAt.toLocaleDateString(),
+            fileUrl: Safe.safeString(data.fileUrl || data.file_url),
+            status: Safe.safeString(data.status, 'final')
+          } as HealthRecord;
+        } catch (err) {
+          console.error('Error mapping health record:', err);
+          return null;
+        }
+      }).filter((rec): rec is HealthRecord => rec !== null);
     } catch (e) {
       console.error("Fetch health records error", e);
       return [];
@@ -883,11 +878,14 @@ export const firebaseDb = {
           q = query(q, startAfter(options.lastDoc));
         }
         const querySnapshot = await getDocs(q);
-        const orders = querySnapshot.docs.map((doc) => ({ 
-          id: doc.id, 
-          ...doc.data(),
-          createdAt: doc.data().createdAt?.toDate?.() || doc.data().created_at?.toDate?.() || new Date()
-        }));
+        const orders = querySnapshot.docs.map((doc) => {
+          const data = doc.data() as any;
+          return { 
+            id: doc.id, 
+            ...data,
+            createdAt: data.createdAt?.toDate?.() || data.created_at?.toDate?.() || new Date()
+          };
+        });
         
         return {
           data: orders,
@@ -906,11 +904,14 @@ export const firebaseDb = {
           q = query(q, startAfter(options.lastDoc));
         }
         const querySnapshot = await getDocs(q);
-        const orders = querySnapshot.docs.map((doc) => ({ 
-          id: doc.id, 
-          ...doc.data(),
-          createdAt: doc.data().created_at?.toDate?.() || new Date()
-        }));
+        const orders = querySnapshot.docs.map((doc) => {
+          const data = doc.data() as any;
+          return { 
+            id: doc.id, 
+            ...data,
+            createdAt: data.created_at?.toDate?.() || new Date()
+          };
+        });
         
         return {
           data: orders,
@@ -1239,43 +1240,38 @@ export const firebaseDb = {
       const totalUsers = allUsers.length;
       const activeUsers = allUsers.filter(u => u.isActive !== false).length;
       const usersByRole = {
-        PATIENT: allUsers.filter(u => u.role === 'PATIENT').length,
-        DOCTOR: allUsers.filter(u => u.role === 'DOCTOR').length,
-        PHARMACY: allUsers.filter(u => u.role === 'PHARMACY').length,
-        COURIER: allUsers.filter(u => u.role === 'COURIER').length,
-        CHW: allUsers.filter(u => u.role === 'CHW').length,
-        ADMIN: allUsers.filter(u => u.role === 'ADMIN').length,
+        PATIENT: allUsers.filter(u => u.role === UserRole.PATIENT).length,
+        DOCTOR: allUsers.filter(u => u.role === UserRole.DOCTOR).length,
+        PHARMACY: allUsers.filter(u => u.role === UserRole.PHARMACY).length,
+        COURIER: allUsers.filter(u => u.role === UserRole.COURIER).length,
+        CHW: allUsers.filter(u => u.role === UserRole.CHW).length,
+        ADMIN: allUsers.filter(u => u.role === UserRole.ADMIN).length,
       };
       
-      // Calculate revenue
-      const verifiedTransactions = allTransactions.filter(t => t.status === 'VERIFIED' || t.status === 'COMPLETED');
-      const totalRevenue = verifiedTransactions.reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+      const verifiedTransactions = allTransactions.filter(t => t.status === 'VERIFIED' || t.status === 'COMPLETED' || t.status === 'APPROVED');
+      const totalRevenue = verifiedTransactions.reduce((sum, t) => sum + Safe.safeNumber(t.amount), 0);
       
-      // Get revenue by type
       const revenueByType = {
-        consultations: verifiedTransactions.filter(t => t.itemType === 'consultation' || t.type === 'CONSULTATION_FEE').reduce((sum, t) => sum + (Number(t.amount) || 0), 0),
-        pharmacy: verifiedTransactions.filter(t => t.itemType === 'order' || t.itemType === 'sale').reduce((sum, t) => sum + (Number(t.amount) || 0), 0),
-        subscriptions: verifiedTransactions.filter(t => t.itemType === 'subscription').reduce((sum, t) => sum + (Number(t.amount) || 0), 0),
+        consultations: verifiedTransactions.filter(t => t.itemType === 'consultation' || t.type === 'CONSULTATION_FEE').reduce((sum, t) => sum + Safe.safeNumber(t.amount), 0),
+        pharmacy: verifiedTransactions.filter(t => t.itemType === 'order' || t.itemType === 'sale').reduce((sum, t) => sum + Safe.safeNumber(t.amount), 0),
+        subscriptions: verifiedTransactions.filter(t => t.itemType === 'subscription').reduce((sum, t) => sum + Safe.safeNumber(t.amount), 0),
       };
       
-      // Get active doctors count
       const activeDoctors = allDoctors.length;
       
-      // Get recent stats (last 30 days)
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       
       const recentUsers = allUsers.filter(u => {
-        const createdAt = u.createdAt?.toDate ? u.createdAt.toDate() : new Date(u.createdAt);
+        const createdAt = Safe.safeTimestamp(u.createdAt);
         return createdAt >= thirtyDaysAgo;
       }).length;
       
       const recentRevenue = verifiedTransactions.filter(t => {
-        const createdAt = t.createdAt?.toDate ? t.createdAt.toDate() : new Date((t as any).created_at || t.createdAt);
+        const createdAt = Safe.safeTimestamp(t.createdAt || (t as any).created_at);
         return createdAt >= thirtyDaysAgo;
-      }).reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+      }).reduce((sum, t) => sum + Safe.safeNumber(t.amount), 0);
       
-      // Calculate growth percentages
       const userGrowth = totalUsers > 0 ? ((recentUsers / totalUsers) * 100).toFixed(1) : '0';
       const revenueGrowth = totalRevenue > 0 ? ((recentRevenue / totalRevenue) * 100).toFixed(1) : '0';
       
@@ -1528,18 +1524,18 @@ export const firebaseDb = {
         const data = doc.data();
         return {
           id: doc.id,
-          name: data.name || 'Courier',
+          name: Safe.safeString(data.name, 'Courier'),
           vehicle: (data.vehicle || 'Motorcycle') as 'Motorcycle' | 'Bicycle' | 'Van',
           status: (data.status || 'Offline') as 'Available' | 'Busy' | 'Offline',
-          currentLocation: data.currentLocation || data.location || 'Not specified',
-          ordersDelivered: Number(data.ordersDelivered || data.orders_delivered || 0),
-          rating: Number(data.rating || 0),
+          currentLocation: Safe.safeString(data.currentLocation || data.location, 'Not specified'),
+          ordersDelivered: Safe.safeNumber(data.ordersDelivered || data.orders_delivered),
+          rating: Safe.safeNumber(data.rating),
           trustTier: data.trustTier || data.trust_tier,
-          isTrusted: Boolean(data.isTrusted || data.is_trusted || false),
+          isTrusted: Boolean(data.isTrusted || data.is_trusted),
           verificationStatus: data.verificationStatus || data.verification_status || 'Pending',
-          phone: data.phone || '',
-          email: data.email || '',
-          avatar: data.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name || 'Courier')}&background=random`
+          phone: Safe.safeString(data.phone),
+          email: Safe.safeString(data.email),
+          avatar: Safe.safeString(data.avatar, `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name || 'Courier')}&background=random`)
         } as Courier;
       });
     } catch (e) {

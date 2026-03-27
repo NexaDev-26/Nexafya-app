@@ -51,7 +51,7 @@ import { PreferencesProvider } from './contexts/PreferencesContext';
 import { DarkModeProvider, useDarkMode } from './contexts/DarkModeContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { BackToTop } from './components/BackToTop'; 
-import { UserRole, Article, Appointment, HealthRecord, FamilyMember } from './types';
+import { UserRole, Article, Appointment, HealthRecord, FamilyMember, AppointmentStatus, AppointmentType, PaymentStatus } from './types';
 import { MOCK_ARTICLES } from './constants'; 
 import { db } from './services/db'; 
 import { Loader2 } from 'lucide-react';
@@ -101,11 +101,13 @@ const MainApp: React.FC = () => {
   const [healthRecords, setHealthRecords] = useState<HealthRecord[]>([]);
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [dataLoading, setDataLoading] = useState(true);
 
   // 1. Fetch Real Data when User Authenticates
   useEffect(() => {
     if (user?.id) {
         const loadData = async () => {
+            setDataLoading(true);
             try {
                 const apts = await db.getAppointments(user.id, user.role);
                 setAppointments(apts);
@@ -119,6 +121,8 @@ const MainApp: React.FC = () => {
                 }
             } catch (e) {
                 handleError(e, notify);
+            } finally {
+                setDataLoading(false);
             }
         };
         loadData();
@@ -208,15 +212,17 @@ const MainApp: React.FC = () => {
   const handleBookAppointment = async (newAppointment: Appointment) => {
       try {
           await db.createAppointment({
-              patientId: user?.id,
+              patientId: user?.id || '',
               doctorId: newAppointment.doctorId,
-              patientName: newAppointment.patientName || user?.name,
+              patientName: newAppointment.patientName || user?.name || '',
               doctorName: newAppointment.doctorName,
               date: newAppointment.date,
               time: newAppointment.time,
+              status: AppointmentStatus.UPCOMING,
               type: newAppointment.type,
-              fee: newAppointment.fee,
-              location: newAppointment.location
+              fee: newAppointment.fee || 0,
+              paymentStatus: PaymentStatus.PENDING,
+              location: newAppointment.location || 'Online'
           });
           
           if (user) {
@@ -236,7 +242,7 @@ const MainApp: React.FC = () => {
 
   const handleCancelAppointment = async (id: string) => {
       try {
-          await db.updateAppointmentStatus(id, 'CANCELLED');
+          await db.updateAppointmentStatus(id, AppointmentStatus.CANCELLED);
           setAppointments(prev => prev.filter(a => a.id !== id));
           notify("Appointment cancelled.", "info");
       } catch (e) {
@@ -246,7 +252,7 @@ const MainApp: React.FC = () => {
 
   const handleRescheduleAppointment = async (id: string, newDate: string, newTime: string) => {
       setAppointments(prev => prev.map(a => 
-          a.id === id ? { ...a, date: newDate, time: newTime, status: 'UPCOMING' } : a
+          a.id === id ? { ...a, date: newDate, time: newTime, status: AppointmentStatus.UPCOMING } : a
       ));
   };
 
@@ -309,6 +315,7 @@ const MainApp: React.FC = () => {
                   userName={user.name} 
                   onNavigate={handleNavigate}
                   appointments={appointments}
+                  loading={dataLoading}
                   onCancelAppointment={handleCancelAppointment}
                   onRescheduleAppointment={handleRescheduleAppointment}
                />;

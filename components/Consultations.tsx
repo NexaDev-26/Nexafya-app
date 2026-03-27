@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Appointment, Medicine, UserRole, PaymentMethod, Doctor, HealthRecord } from '../types';
+import { Appointment, Medicine, UserRole, PaymentMethod, Doctor, HealthRecord, AppointmentStatus, AppointmentType, PaymentStatus } from '../types';
 import { Calendar as CalendarIcon, Video, Clock, ChevronRight, User, FileText, CheckCircle, X, Plus, Pill, Search, AlertCircle, History, Activity, ClipboardList, ArrowLeft, Gift, Award, MoreVertical, MapPin, DollarSign, CreditCard, Shield, Smartphone, Lock, Copy, Hash, Loader2, Navigation, ChevronLeft, LayoutList, Filter, CalendarDays, ExternalLink, Download } from 'lucide-react';
 import { useNotification } from './NotificationSystem';
 import { db } from '../services/db';
@@ -150,7 +150,7 @@ export const Consultations: React.FC<ConsultationsProps> = ({
       
       try {
           if (selectedApt) {
-            await db.updateAppointmentStatus(selectedApt.id, 'COMPLETED', combinedNotes);
+            await db.updateAppointmentStatus(selectedApt.id, AppointmentStatus.COMPLETED, combinedNotes);
             notify('Consultation finalized. Summary saved to history.', 'success');
             setSelectedApt(null);
             setSoapNotes({ subjective: '', objective: '', assessment: '', plan: '' });
@@ -252,7 +252,7 @@ export const Consultations: React.FC<ConsultationsProps> = ({
                                                     key={apt.id}
                                                     onClick={() => { setSelectedApt(apt); setDoctorViewMode('list'); }}
                                                     className={`w-full text-left p-1.5 rounded-lg text-[10px] leading-tight transition-all truncate hover:ring-2 hover:ring-blue-500/20 ${
-                                                        apt.status === 'UPCOMING' 
+                                                        apt.status === AppointmentStatus.UPCOMING 
                                                         ? 'bg-blue-50 text-blue-700 border border-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800' 
                                                         : 'bg-gray-100 text-gray-600 border border-gray-200 dark:bg-gray-600/50 dark:text-gray-300 dark:border-gray-700/50'
                                                     }`}
@@ -262,7 +262,7 @@ export const Consultations: React.FC<ConsultationsProps> = ({
                                                     </div>
                                                     <p className="font-bold truncate">{apt.patientName}</p>
                                                     <p className="opacity-70 flex items-center gap-1">
-                                                        {apt.type === 'VIDEO' ? <Video size={8} /> : <User size={8} />} {apt.type}
+                                                        {apt.type === AppointmentType.VIDEO ? <Video size={8} /> : <User size={8} />} {apt.type}
                                                     </p>
                                                 </button>
                                             ))}
@@ -390,9 +390,9 @@ export const Consultations: React.FC<ConsultationsProps> = ({
                                 patientName: userName || 'Patient',
                                 date: newBooking.date,
                                 time: newBooking.time,
-                                status: 'UPCOMING',
-                                paymentStatus: 'PENDING',
-                                type: (newBooking.mode || 'CHAT'),
+                                status: AppointmentStatus.UPCOMING,
+                                paymentStatus: PaymentStatus.PENDING,
+                                type: (newBooking.mode || 'CHAT') as AppointmentType,
                                 fee: newBooking.doctor.price
                               };
                               await onBookAppointment?.(apt);
@@ -429,7 +429,7 @@ export const Consultations: React.FC<ConsultationsProps> = ({
               </div>
               
               <div className="grid gap-4">
-                  {appointments.filter(a => patientTab === 'upcoming' ? a.status === 'UPCOMING' : a.status !== 'UPCOMING').map(apt => (
+                  {appointments.filter(a => patientTab === 'upcoming' ? a.status === AppointmentStatus.UPCOMING : a.status !== AppointmentStatus.UPCOMING).map(apt => (
                       <div key={apt.id} className="bg-white dark:bg-[#0F172A] p-6 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700/50 flex flex-col md:flex-row gap-6 items-center relative">
                           <div className="bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 p-4 rounded-2xl text-center min-w-[80px]">
                               <span className="block text-2xl font-bold">{new Date(apt.date).getDate()}</span>
@@ -522,7 +522,7 @@ export const Consultations: React.FC<ConsultationsProps> = ({
                                         <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded uppercase tracking-wider">{apt.time}</span>
                                     </div>
                                     <div className="flex items-center gap-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                                        {apt.type === 'VIDEO' ? <Video size={10}/> : <User size={10}/>}
+                                        {apt.type === AppointmentType.VIDEO ? <Video size={10}/> : <User size={10}/>}
                                         <span>{apt.type} • {apt.date}</span>
                                     </div>
                                 </div>
