@@ -13,11 +13,20 @@ export default defineConfig({
     // Optimize chunk splitting
     rollupOptions: {
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom'],
-          'firebase-vendor': ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage'],
-          'ui-vendor': ['lucide-react'],
-          'utils-vendor': ['lodash-es', 'zod'],
+        manualChunks(id) {
+          if (id.includes('react') || id.includes('react-dom')) {
+            return 'react-vendor';
+          }
+          if (id.includes('firebase/app') || id.includes('firebase/auth') || id.includes('firebase/firestore') || id.includes('firebase/storage')) {
+            return 'firebase-vendor';
+          }
+          if (id.includes('lucide-react')) {
+            return 'ui-vendor';
+          }
+          if (id.includes('lodash-es') || id.includes('zod')) {
+            return 'utils-vendor';
+          }
+          // return undefined to allow default splitting
         },
       },
     },
