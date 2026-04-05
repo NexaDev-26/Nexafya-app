@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   Calendar as CalendarIcon, 
   ChevronLeft, 
@@ -36,9 +36,10 @@ export const EnhancedCalendar: React.FC = () => {
 
   useEffect(() => {
     loadAppointments();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadAppointments = async () => {
+  const loadAppointments = useCallback(async () => {
     try {
       setLoading(true);
       const data = await db.getAppointments(user?.id || '', (user?.role || UserRole.PATIENT) as UserRole);
@@ -48,7 +49,7 @@ export const EnhancedCalendar: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id, user?.role, notify]);
 
   const navigateMonth = (direction: 'prev' | 'next') => {
     setCurrentDate(prev => {
@@ -79,7 +80,7 @@ export const EnhancedCalendar: React.FC = () => {
     setSelectedDate(null);
   };
 
-  const getDaysInMonth = (date: Date) => {
+  const getDaysInMonth = useCallback((date: Date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
     const firstDay = new Date(year, month, 1);
@@ -87,35 +88,27 @@ export const EnhancedCalendar: React.FC = () => {
     const daysInMonth = lastDay.getDate();
     const startingDayOfWeek = firstDay.getDay();
 
-    const days = [];
-    // Add empty cells for days before month starts
-    for (let i = 0; i < startingDayOfWeek; i++) {
-      days.push(null);
-    }
-    // Add days of the month
-    for (let i = 1; i <= daysInMonth; i++) {
-      days.push(new Date(year, month, i));
-    }
-
+    const days: (Date | null)[] = [];
+    for (let i = 0; i < startingDayOfWeek; i++) days.push(null);
+    for (let i = 1; i <= daysInMonth; i++) days.push(new Date(year, month, i));
     return days;
-  };
+  }, []);
 
-  const getWeekDays = (date: Date) => {
+  const getWeekDays = useCallback((date: Date) => {
     const weekStart = new Date(date);
     const day = weekStart.getDay();
     const diff = weekStart.getDate() - day;
     weekStart.setDate(diff);
-
-    const days = [];
+    const days: Date[] = [];
     for (let i = 0; i < 7; i++) {
-      const day = new Date(weekStart);
-      day.setDate(weekStart.getDate() + i);
-      days.push(day);
+      const d = new Date(weekStart);
+      d.setDate(weekStart.getDate() + i);
+      days.push(d);
     }
     return days;
-  };
+  }, []);
 
-  const getAppointmentsForDate = (date: Date) => {
+  const getAppointmentsForDate = useCallback((date: Date) => {
     return appointments.filter(apt => {
       const aptDate = new Date(apt.date);
       return aptDate.toDateString() === date.toDateString() &&
@@ -123,26 +116,41 @@ export const EnhancedCalendar: React.FC = () => {
         (apt.patientName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
          apt.doctorName?.toLowerCase().includes(searchQuery.toLowerCase()));
     });
-  };
+  }, [appointments, filterType, searchQuery]);
 
-  const getAppointmentsForDay = (date: Date) => {
+  const getAppointmentsForDay = useCallback((date: Date) => {
     const dayAppts = getAppointmentsForDate(date);
     return dayAppts.sort((a, b) => {
       const timeA = a.time.split(':').map(Number);
       const timeB = b.time.split(':').map(Number);
       return timeA[0] * 60 + timeA[1] - (timeB[0] * 60 + timeB[1]);
     });
-  };
+  }, [getAppointmentsForDate]);
 
-  const filteredAppointments = appointments.filter(apt => {
+  const filteredAppointments = useMemo(() => appointments.filter(apt => {
     const matchesType = filterType === 'ALL' || apt.type === filterType;
-    const matchesSearch = 
+    const matchesSearch =
       apt.patientName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       apt.doctorName?.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesType && matchesSearch;
-  });
+  }), [appointments, filterType, searchQuery]);
 
-  const getAppointmentColor = (type: AppointmentType) => {
+  // Pre-build a date-string → appointments lookup for month view O(n) vs O(n*days)
+  const appointmentsByDateStr = useMemo(() => {
+    const map: Record<string, typeof appointments> = {};
+    filteredAppointments.forEach(apt => {
+      const key = new Date(apt.date).toDateString();
+      if (!map[key]) map[key] = [];
+      map[key].push(apt);
+    });
+    return map;
+  }, [filteredAppointments]);
+
+  const monthDays = useMemo(() => getDaysInMonth(currentDate), [currentDate, getDaysInMonth]);
+  const weekDaysList = useMemo(() => getWeekDays(currentDate), [currentDate, getWeekDays]);
+
+
+  const getAppointmentColor = useCallback((type: AppointmentType) => {
     switch (type) {
       case 'VIDEO':
         return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
@@ -153,25 +161,20 @@ export const EnhancedCalendar: React.FC = () => {
       default:
         return 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400';
     }
-  };
+  }, []);
 
-  const getAppointmentIcon = (type: AppointmentType) => {
+
+  const getAppointmentIcon = useCallback((type: AppointmentType) => {
     switch (type) {
-      case 'VIDEO':
-        return Video;
-      case 'AUDIO':
-        return Phone;
-      case 'CHAT':
-        return MessageSquare;
-      default:
-        return Clock;
+      case 'VIDEO': return Video;
+      case 'AUDIO': return Phone;
+      case 'CHAT':  return MessageSquare;
+      default:      return Clock;
     }
-  };
+  }, []);
 
-  const renderMonthView = () => {
-    const days = getDaysInMonth(currentDate);
+  const renderMonthView = useCallback(() => {
     const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
     return (
       <div className="bg-white dark:bg-[#0F172A] rounded-3xl border border-gray-100 dark:border-gray-700/50 p-6">
         <div className="grid grid-cols-7 gap-2 mb-4">
@@ -182,15 +185,11 @@ export const EnhancedCalendar: React.FC = () => {
           ))}
         </div>
         <div className="grid grid-cols-7 gap-2">
-          {days.map((day, index) => {
-            if (!day) {
-              return <div key={index} className="aspect-square" />;
-            }
-
-            const dayAppts = getAppointmentsForDate(day);
+          {monthDays.map((day, index) => {
+            if (!day) return <div key={index} className="aspect-square" />;
+            const dayAppts = appointmentsByDateStr[day.toDateString()] || [];
             const isToday = day.toDateString() === new Date().toDateString();
             const isSelected = selectedDate?.toDateString() === day.toDateString();
-
             return (
               <div
                 key={index}
@@ -209,19 +208,14 @@ export const EnhancedCalendar: React.FC = () => {
                     {dayAppts.slice(0, 3).map((apt, aptIndex) => {
                       const Icon = getAppointmentIcon(apt.type as AppointmentType);
                       return (
-                        <div
-                          key={aptIndex}
-                          className={`text-xs px-1 py-0.5 rounded ${getAppointmentColor(apt.type as AppointmentType)} truncate flex items-center gap-1`}
-                        >
+                        <div key={aptIndex} className={`text-xs px-1 py-0.5 rounded ${getAppointmentColor(apt.type as AppointmentType)} truncate flex items-center gap-1`}>
                           <Icon size={10} />
                           {apt.time}
                         </div>
                       );
                     })}
                     {dayAppts.length > 3 && (
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        +{dayAppts.length - 3} more
-                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">+{dayAppts.length - 3} more</div>
                     )}
                   </div>
                 )}
@@ -231,59 +225,34 @@ export const EnhancedCalendar: React.FC = () => {
         </div>
       </div>
     );
-  };
+  }, [monthDays, appointmentsByDateStr, selectedDate, getAppointmentColor, getAppointmentIcon]);
 
-  const renderWeekView = () => {
-    const weekDays = getWeekDays(currentDate);
+  const renderWeekView = useCallback(() => {
     const weekDaysNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
     return (
       <div className="bg-white dark:bg-[#0F172A] rounded-3xl border border-gray-100 dark:border-gray-700/50 p-6">
         <div className="grid grid-cols-7 gap-4">
-          {weekDays.map((day, index) => {
+          {weekDaysList.map((day, index) => {
             const dayAppts = getAppointmentsForDay(day);
             const isToday = day.toDateString() === new Date().toDateString();
-
             return (
               <div key={index} className="min-h-[400px]">
-                <div className={`text-center p-2 rounded-lg mb-2 ${
-                  isToday ? 'bg-blue-50 dark:bg-blue-900/20' : ''
-                }`}>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 font-bold">
-                    {weekDaysNames[index]}
-                  </div>
-                  <div className={`text-lg font-bold ${
-                    isToday ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'
-                  }`}>
-                    {day.getDate()}
-                  </div>
+                <div className={`text-center p-2 rounded-lg mb-2 ${ isToday ? 'bg-blue-50 dark:bg-blue-900/20' : '' }`}>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 font-bold">{weekDaysNames[index]}</div>
+                  <div className={`text-lg font-bold ${ isToday ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white' }`}>{day.getDate()}</div>
                 </div>
                 <div className="space-y-2">
                   {dayAppts.map((apt, aptIndex) => {
                     const Icon = getAppointmentIcon(apt.type as AppointmentType);
                     return (
-                      <div
-                        key={aptIndex}
-                        className={`p-2 rounded-lg border ${getAppointmentColor(apt.type as AppointmentType)} border-current/20`}
-                      >
-                        <div className="flex items-center gap-2 mb-1">
-                          <Icon size={14} />
-                          <span className="text-xs font-bold">{apt.time}</span>
-                        </div>
-                        <div className="text-xs font-bold truncate">
-                          {apt.patientName || apt.doctorName}
-                        </div>
-                        <div className="text-xs opacity-75 truncate">
-                          {apt.type}
-                        </div>
+                      <div key={aptIndex} className={`p-2 rounded-lg border ${getAppointmentColor(apt.type as AppointmentType)} border-current/20`}>
+                        <div className="flex items-center gap-2 mb-1"><Icon size={14} /><span className="text-xs font-bold">{apt.time}</span></div>
+                        <div className="text-xs font-bold truncate">{apt.patientName || apt.doctorName}</div>
+                        <div className="text-xs opacity-75 truncate">{apt.type}</div>
                       </div>
                     );
                   })}
-                  {dayAppts.length === 0 && (
-                    <div className="text-xs text-gray-400 dark:text-gray-600 text-center py-4">
-                      No appointments
-                    </div>
-                  )}
+                  {dayAppts.length === 0 && <div className="text-xs text-gray-400 dark:text-gray-600 text-center py-4">No appointments</div>}
                 </div>
               </div>
             );
@@ -291,7 +260,7 @@ export const EnhancedCalendar: React.FC = () => {
         </div>
       </div>
     );
-  };
+  }, [weekDaysList, getAppointmentsForDay, getAppointmentColor, getAppointmentIcon]);
 
   const renderDayView = () => {
     const dayAppts = getAppointmentsForDay(currentDate);
@@ -405,7 +374,7 @@ export const EnhancedCalendar: React.FC = () => {
             </button>
             <div className="text-lg font-bold text-gray-900 dark:text-white min-w-[200px] text-center">
               {viewMode === 'month' && currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-              {viewMode === 'week' && `${getWeekDays(currentDate)[0].toLocaleDateString()} - ${getWeekDays(currentDate)[6].toLocaleDateString()}`}
+              {viewMode === 'week' && `${weekDaysList[0]?.toLocaleDateString()} - ${weekDaysList[6]?.toLocaleDateString()}`}
               {viewMode === 'day' && currentDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
             </div>
             <button

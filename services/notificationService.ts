@@ -328,7 +328,7 @@ class NotificationService {
       message: `You have an appointment with ${doctorName} on ${date} at ${time}`,
       priority: 'HIGH',
       data: { appointmentId, doctorName, date, time },
-      actionUrl: `/consultations?appointment=${appointmentId}`,
+      actionUrl: '/consultations',
     });
   }
 
@@ -348,7 +348,7 @@ class NotificationService {
       message: `Take ${medicationName} (${dosage}) at ${time}`,
       priority: 'HIGH',
       data: { medicationName, dosage, time },
-      actionUrl: '/health?tab=medications',
+      actionUrl: '/health',
     });
   }
 
@@ -371,7 +371,7 @@ class NotificationService {
         : `Payment of ${currency} ${amount.toLocaleString()} failed. Please try again.`,
       priority: 'NORMAL',
       data: { amount, currency, transactionId },
-      actionUrl: type === 'PAYMENT_SUCCESS' ? `/profile?tab=transactions` : `/profile?tab=payments`,
+      actionUrl: '/profile',
     });
   }
 
@@ -391,7 +391,7 @@ class NotificationService {
       message: `Your order #${orderNumber} is now ${status}`,
       priority: 'NORMAL',
       data: { orderId, status, orderNumber },
-      actionUrl: `/orders?order=${orderId}`,
+      actionUrl: '/orders',
     });
   }
 

@@ -28,6 +28,7 @@ export const VerificationDocumentUpload: React.FC<VerificationDocumentUploadProp
     [UserRole.PATIENT]: [],
     [UserRole.ADMIN]: [],
     [UserRole.CHW]: ['National ID', 'Professional Certificate'],
+    [UserRole.LAB_TECHNICIAN]: ['National ID', 'Laboratory Technician Certificate'],
   };
 
   useEffect(() => {

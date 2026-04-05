@@ -157,6 +157,12 @@ export const Layout: React.FC<LayoutProps> = ({
           { id: 'reports', label: 'Reports', icon: FileText },
           ...common.filter(i => i.id !== 'dashboard')
         ];
+      case UserRole.LAB_TECHNICIAN:
+        return [
+          { id: 'dashboard', label: 'Lab Orders', icon: Activity },
+          { id: 'messages', label: 'Messages', icon: MessageSquare },
+          { id: 'settings', label: 'Settings', icon: Settings },
+        ];
       default:
         return common;
     }
@@ -385,7 +391,11 @@ export const Layout: React.FC<LayoutProps> = ({
       {/* Notifications Panel */}
       <NotificationsPanel 
         isOpen={isNotificationMenuOpen} 
-        onClose={() => setIsNotificationMenuOpen(false)} 
+        onClose={() => setIsNotificationMenuOpen(false)}
+        onNavigate={(view) => {
+          setCurrentView(view);
+          setIsNotificationMenuOpen(false);
+        }}
       />
     </div>
   );

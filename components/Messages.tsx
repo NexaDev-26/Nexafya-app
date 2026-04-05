@@ -1,9 +1,11 @@
 
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { Search, Send, Paperclip, MoreVertical, Phone, Video, Check, CheckCheck, Mic, Smile, Image as ImageIcon, ArrowLeft } from 'lucide-react';
 import { User, UserRole, Appointment } from '../types';
 import { db } from '../services/db';
 import { useNotification } from './NotificationSystem';
+import { db as firestore } from '../lib/firebase';
+import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 
 interface MessagesProps {
   user: User;
@@ -57,24 +59,51 @@ export const Messages: React.FC<MessagesProps> = ({ user, onNavigate }) => {
 
   const selectedPartner = partners.find(p => p.id === selectedPartnerId) || partners[0] || null;
 
-  // Load Messages
+  // Load messages when selected partner changes, then subscribe for real-time updates
   useEffect(() => {
-    const loadMsgs = async () => {
-      if (!selectedPartner) return;
-      const history = await db.getMessages(user.id, selectedPartner.id);
+    if (!selectedPartnerId) return;
+
+    // Initial load
+    db.getMessages(user.id, selectedPartnerId).then(history => {
       setMessages(history.length > 0 ? history : []);
-    };
-    loadMsgs();
+    }).catch(console.error);
+
+    // Real-time subscription on the conversation
+    const conversationId = [user.id, selectedPartnerId].sort().join('_');
+    const q = query(
+      collection(firestore, 'messages'),
+      where('conversationId', '==', conversationId),
+      orderBy('createdAt', 'asc')
+    );
+    const unsub = onSnapshot(q, snapshot => {
+      const msgs = snapshot.docs.map(doc => {
+        const d = doc.data();
+        return {
+          id: doc.id,
+          sender: d.senderId === user.id ? 'me' : 'them',
+          text: d.text || d.content || '',
+          time: d.createdAt?.toDate
+            ? d.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          status: d.status || 'sent',
+        };
+      });
+      if (msgs.length > 0) setMessages(msgs);
+    }, err => {
+      // Silently ignore permission errors (index may not exist yet)
+      console.warn('Messages real-time subscription error:', err.code);
+    });
+
+    return () => unsub();
   }, [selectedPartnerId, user.id]);
 
   useEffect(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSendMessage = async () => {
-      if (!inputText.trim()) return;
-      if (!selectedPartner) return;
-      
+  const handleSendMessage = useCallback(async () => {
+      if (!inputText.trim() || !selectedPartner) return;
+
       const tempId = Date.now().toString();
       const newMsg = {
           id: tempId,
@@ -87,8 +116,15 @@ export const Messages: React.FC<MessagesProps> = ({ user, onNavigate }) => {
       setMessages(prev => [...prev, newMsg]);
       setInputText('');
 
-      await db.sendMessage(user.id, selectedPartner.id, newMsg.text);
-  };
+      try {
+        await db.sendMessage(user.id, selectedPartner.id, newMsg.text);
+      } catch (err) {
+        console.error('Failed to send message:', err);
+        // Remove optimistic message on failure
+        setMessages(prev => prev.filter(m => m.id !== tempId));
+        notify('Failed to send message. Please try again.', 'error');
+      }
+  }, [inputText, selectedPartner, user.id, notify]);
 
   return (
     <div className="h-[calc(100vh-140px)] flex gap-6 animate-in fade-in duration-500">
@@ -182,7 +218,7 @@ export const Messages: React.FC<MessagesProps> = ({ user, onNavigate }) => {
             <div className="p-4 bg-white dark:bg-[#0F172A] border-t border-gray-100 dark:border-gray-700/50">
                 <div className="flex items-end gap-2 bg-gray-50 dark:bg-[#0A1B2E] p-2 rounded-3xl border border-gray-200 dark:border-gray-700/50 transition-colors focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500">
                     <button className="p-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors hidden sm:block"><Smile size={20} /></button>
-                    <input type="text" value={inputText} onChange={(e) => setInputText(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()} placeholder="Type a message..." className="flex-1 bg-transparent border-none outline-none py-3 max-h-32 text-gray-900 dark:text-white placeholder-gray-400" />
+                    <input type="text" value={inputText} onChange={(e) => setInputText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()} placeholder="Type a message..." className="flex-1 bg-transparent border-none outline-none py-3 max-h-32 text-gray-900 dark:text-white placeholder-gray-400" />
                     <div className="flex items-center gap-1 pr-1">
                         <button className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors hidden sm:block"><Paperclip size={20} /></button>
                         {!inputText ? (

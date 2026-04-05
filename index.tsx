@@ -10,6 +10,7 @@ import './utils/addSampleDoctors';
 
 // Lazy load heavy components for code splitting
 const CHWDashboard = lazy(() => import('./components/CHWDashboard').then(m => ({ default: m.CHWDashboard })));
+const LabTechnicianDashboard = lazy(() => import('./components/LabTechnicianDashboard').then(m => ({ default: m.LabTechnicianDashboard })));
 const CourierDashboard = lazy(() => import('./components/CourierDashboard').then(m => ({ default: m.CourierDashboard })));
 const AdminAnalytics = lazy(() => import('./components/AdminAnalytics').then(m => ({ default: m.AdminAnalytics })));
 const UserManagement = lazy(() => import('./components/UserManagement').then(m => ({ default: m.UserManagement })));
@@ -309,6 +310,9 @@ const MainApp: React.FC = () => {
         }
         if (user.role === UserRole.COURIER) {
           return <Suspense fallback={<LoadingFallback />}><CourierDashboard user={user} /></Suspense>;
+        }
+        if (user.role === UserRole.LAB_TECHNICIAN) {
+          return <Suspense fallback={<LoadingFallback />}><LabTechnicianDashboard user={user} /></Suspense>;
         }
         return <Dashboard 
                   role={user.role} 

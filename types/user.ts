@@ -14,6 +14,7 @@ export enum UserRole {
   ADMIN = 'ADMIN',
   CHW = 'CHW',
   COURIER = 'COURIER',
+  LAB_TECHNICIAN = 'LAB_TECHNICIAN',
 }
 
 /**

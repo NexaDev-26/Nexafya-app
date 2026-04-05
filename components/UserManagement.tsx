@@ -153,6 +153,7 @@ export const UserManagement: React.FC = () => {
     [UserRole.ADMIN]: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
     [UserRole.CHW]: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
     [UserRole.COURIER]: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400',
+    [UserRole.LAB_TECHNICIAN]: 'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400',
   };
 
   if (currentUser?.role !== UserRole.ADMIN) {
